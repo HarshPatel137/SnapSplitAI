@@ -9,7 +9,7 @@ Turns a messy receipt photo into a validated JSON bill, lets you assign items by
 
 ### 🎥 Demo Videos
 
-Meet SnapSplit AI—a modern bill-splitting app that turns receipt photos into fair, per-person totals in seconds. Upload a receipt, watch AI extract items, then tap to assign who had what. Taxes and tips are calculated automatically. Built with OpenAI Vision + Backblaze B2. Privacy-first. No accounts needed.
+Meet SnapSplit AI, a modern bill-splitting app that turns receipt photos into fair, per-person totals in seconds. Upload a receipt, watch AI extract items, then tap to assign who had what. Taxes and tips are calculated automatically. Built with OpenAI Vision + Backblaze B2. Privacy-first. No accounts needed.
 
 https://github.com/user-attachments/assets/6f3229ef-c53e-4314-bdbf-31d207d31a7d
 
@@ -86,7 +86,7 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000
 
 ---
 
-## Troubleshooting (quick)
+## Troubleshooting
 
 - **Region is missing** → verify all B2 vars in `.env` and restart `npm run dev`.
 - **JSON parse error** → keep the safer JSON parser in `app/api/extract/route.ts` (handles code fences & double encoding).

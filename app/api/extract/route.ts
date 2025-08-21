@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
     },
   ],
   response_format: { type: "json_object" },
-  temperature: 0, // Use 0 for more consistent results
+  temperature: 1, // Use 0 for more consistent results
   max_completion_tokens: 2000, // Increased token limit
 });
     const raw = resp.choices[0]?.message?.content;

@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from "motion/react"
+
 import ItemsTable, { type Item } from '@/components/items-table';
 import PeopleEditor from '@/components/people-editor';
 import Summary from '@/components/summary';

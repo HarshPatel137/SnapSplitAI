@@ -1,6 +1,8 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
+import { motion } from "motion/react";
+
 import { Check, Minus, Edit2, Trash2, Plus } from 'lucide-react';
 
 export type Item = { 

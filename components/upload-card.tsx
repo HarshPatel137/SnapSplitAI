@@ -1,6 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
+import { motion } from "motion/react";
 import { Camera, Upload, FileImage, Zap, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface UploadResult {

@@ -1,6 +1,6 @@
 'use client';
 import { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from "motion/react";
 import { DollarSign, Receipt, TrendingUp, Users } from 'lucide-react';
 import type { Item } from './items-table';
 

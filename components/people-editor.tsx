@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
+import { motion } from "motion/react";
 import { Plus, X, Users, UserPlus } from 'lucide-react';
 
 export default function PeopleEditor({ 

@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
     console.log('Sending to OpenAI...');
     
    const resp = await client.chat.completions.create({
-  model: "gpt-5o-mini", // Instead of gpt-4o-mini
+  model: "gpt-5-mini", // Instead of gpt-4o-mini
   messages: [
     { role: "system", content: systemPrompt },
     {

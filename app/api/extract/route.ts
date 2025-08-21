@@ -183,78 +183,142 @@ export async function POST(req: NextRequest) {
 
     console.log('Sending to OpenAI...');
     
-   const resp = await client.chat.completions.create({
-  model: "gpt-5-mini", // Excellent cost/performance ratio for receipt parsing
-  messages: [
-    { role: "system", content: improvedSystemPrompt },
-    {
-      role: "user",
-      content: [
-        { 
-          type: "text", 
-          text: `Please analyze this receipt image carefully and extract all items with their exact quantities and prices. 
-          
-          Step-by-step process:
-          1. First identify all line items (food/drink items only, ignore taxes, tips, service charges)
-          2. For each item, find the exact quantity (if not shown, assume 1)
-          3. Find the exact price per item (not total if multiple quantities)
-          4. Calculate subtotal to verify accuracy
-          5. Extract tax percentage and tip percentage if shown
-          6. Return only the JSON object with no explanations` 
-        },
-        { 
-          type: "image_url", 
-          image_url: { 
-            url: base64Image,
-            detail: "high" // Important for better image analysis
-          } 
-        },
-      ],
-    },
-  ],
-  response_format: { type: "json_object" },
-  temperature: 1, // GPT-5 only supports temperature: 1
-  max_completion_tokens: 2000, // GPT-5 uses max_completion_tokens instead of max_tokens
-});
-    const raw = resp.choices[0]?.message?.content;
-    if (!raw) throw new Error("Model returned empty response");
+    // Try multiple models in order of preference
+    const models = [
+      { name: "gpt-5-mini", useNewParams: true },
+      { name: "gpt-4o", useNewParams: false },
+      { name: "gpt-4o-mini", useNewParams: false }
+    ];
 
-    console.log('Raw OpenAI response:', raw);
-    
-    const cleaned = raw.replace(/```json|```/g, "").trim();
-    console.log('Cleaned JSON string:', cleaned);
-    
-    let json;
-    try {
-      json = JSON.parse(cleaned);
-      console.log('Parsed JSON:', JSON.stringify(json, null, 2));
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      throw new Error(`Invalid JSON response from AI: ${parseError}`);
-    }
+    let lastError: any = null;
 
-    // Validate and fix the data before Zod validation
-    if (json.items && Array.isArray(json.items)) {
-      json.items = json.items.map((item: any, index: number) => {
-        console.log(`Processing item ${index}:`, item);
+    for (const modelConfig of models) {
+      try {
+        console.log(`Trying model: ${modelConfig.name}`);
         
-        return {
-          name: item.name || `Item ${index + 1}`,
-          qty: typeof item.qty === 'number' && item.qty > 0 ? item.qty : 1,
-          price: typeof item.price === 'number' && item.price >= 0 ? item.price : 0
+        const requestParams: any = {
+          model: modelConfig.name,
+          messages: [
+            { role: "system", content: improvedSystemPrompt },
+            {
+              role: "user",
+              content: [
+                { 
+                  type: "text", 
+                  text: `Please analyze this receipt image carefully and extract all items with their exact quantities and prices. Return only valid JSON.` 
+                },
+                { 
+                  type: "image_url", 
+                  image_url: { 
+                    url: base64Image,
+                    detail: "high"
+                  } 
+                },
+              ],
+            },
+          ],
+          response_format: { type: "json_object" },
         };
-      });
-      
-      console.log('Fixed items:', json.items);
+
+        // Use appropriate parameters for each model
+        if (modelConfig.useNewParams) {
+          requestParams.temperature = 1;
+          requestParams.max_completion_tokens = 1500;
+        } else {
+          requestParams.temperature = 0.1;
+          requestParams.max_tokens = 1500;
+        }
+
+        const resp = await client.chat.completions.create(requestParams);
+        
+        console.log('Full OpenAI response:', JSON.stringify(resp, null, 2));
+        
+        const raw = resp.choices[0]?.message?.content;
+        
+        if (!raw) {
+          console.warn(`${modelConfig.name} returned empty response, trying next model...`);
+          lastError = new Error(`${modelConfig.name} returned empty response`);
+          continue;
+        }
+
+        console.log(`Raw ${modelConfig.name} response:`, raw);
+        console.log('Raw response length:', raw.length);
+        
+        // More robust JSON cleaning
+        let cleaned = raw.replace(/```json|```/g, "").trim();
+        
+        // Handle potential incomplete responses
+        if (!cleaned.endsWith('}') && !cleaned.endsWith(']')) {
+          console.warn('Response appears incomplete, attempting to fix...');
+          const lastBraceIndex = cleaned.lastIndexOf('}');
+          if (lastBraceIndex > 0) {
+            cleaned = cleaned.substring(0, lastBraceIndex + 1);
+          }
+        }
+        
+        console.log('Cleaned JSON string:', cleaned);
+        
+        let json;
+        try {
+          json = JSON.parse(cleaned);
+          console.log('Parsed JSON:', JSON.stringify(json, null, 2));
+        } catch (parseError) {
+          console.error('JSON parse error with', modelConfig.name, ':', parseError);
+          console.error('Problematic string:', cleaned);
+          
+          // Try alternative parsing approaches
+          try {
+            const fixedJson = cleaned
+              .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+              .replace(/,\s*$/, '') // Remove trailing comma at end
+              .replace(/\n/g, ' ') // Remove newlines
+              .replace(/\s+/g, ' '); // Normalize whitespace
+            
+            json = JSON.parse(fixedJson);
+            console.log('Successfully parsed with fixes:', json);
+          } catch (secondError) {
+            console.error(`Failed to parse JSON from ${modelConfig.name}, trying next model...`);
+            lastError = new Error(`Invalid JSON from ${modelConfig.name}: ${parseError}`);
+            continue;
+          }
+        }
+
+        // If we got here, we have valid JSON - validate and return
+        if (json.items && Array.isArray(json.items)) {
+          json.items = json.items.map((item: any, index: number) => {
+            console.log(`Processing item ${index}:`, item);
+            
+            return {
+              name: item.name || `Item ${index + 1}`,
+              qty: typeof item.qty === 'number' && item.qty > 0 ? item.qty : 1,
+              price: typeof item.price === 'number' && item.price >= 0 ? item.price : 0
+            };
+          });
+          
+          console.log('Fixed items:', json.items);
+        }
+
+        // Validate strictly with Zod
+        const data = ExtractSchema.parse(json);
+        console.log(`Extraction successful with ${modelConfig.name}:`, data);
+        
+        return NextResponse.json({ data, model_used: modelConfig.name });
+
+      } catch (modelError) {
+        console.error(`Error with ${modelConfig.name}:`, modelError);
+        lastError = modelError;
+        continue; // Try next model
+      }
     }
 
-    // Validate strictly with Zod
-    const data = ExtractSchema.parse(json);
-    console.log('Extraction successful:', data);
-    
-    return NextResponse.json({ data });
+    // If all models failed
+    throw new Error(`All models failed. Last error: ${lastError?.message || lastError}`);
+
   } catch (e: any) {
     console.error("EXTRACT_ERROR:", e);
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+    return NextResponse.json({ 
+      error: String(e?.message || e),
+      details: "Receipt parsing failed with all attempted models"
+    }, { status: 500 });
   }
 }

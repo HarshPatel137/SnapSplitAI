@@ -213,7 +213,7 @@ export async function POST(req: NextRequest) {
   ],
   response_format: { type: "json_object" },
   temperature: 0, // Use 0 for more consistent results
-  max_tokens: 2000, // Increased token limit
+  max_completion_tokens: 2000, // Increased token limit
 });
     const raw = resp.choices[0]?.message?.content;
     if (!raw) throw new Error("Model returned empty response");

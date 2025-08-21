@@ -63,7 +63,17 @@ Client
 
 ## 📄 Pages
 
+**Landing Page**
 
+<img width="1919" height="915" alt="Image" src="https://github.com/user-attachments/assets/0396d468-4a26-4425-bc80-75e13b285503" />
+
+**Scan Receipts Page**
+
+<img width="1917" height="913" alt="Image" src="https://github.com/user-attachments/assets/d7f3b2e2-a5c6-43d9-a28d-3c39672838d2" />
+
+**Manual Entry Page**
+
+<img width="1913" height="917" alt="Image" src="https://github.com/user-attachments/assets/6b6d4015-fda0-426c-990b-0787e756912d" />
 
 ---
 

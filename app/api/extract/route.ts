@@ -21,7 +21,7 @@ const ExtractSchema = z.object({
 });
 
 const systemPrompt = `You are an expert receipt parser specializing in extracting accurate data from restaurant and retail receipts.
-
+Return ONLY valid JSON with no explanations:
 ANALYSIS PROCESS:
 1. Scan the entire receipt image carefully
 2. Identify the merchant name (usually at the top)
@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
     console.log('Sending to OpenAI...');
     
    const resp = await client.chat.completions.create({
-  model: "gpt-5-mini", // Instead of gpt-4o-mini
+  model: "gpt-4o", // Instead of gpt-4o-mini
   messages: [
     { role: "system", content: systemPrompt },
     {
@@ -211,7 +211,8 @@ export async function POST(req: NextRequest) {
     },
   ],
   response_format: { type: "json_object" },
-  temperature: 1, // Use 0 for more consistent results
+  temperature: 0, // Use 0 for more consistent results
+  max_tokens: 2000, // Increased token limit
 });
     const raw = resp.choices[0]?.message?.content;
     if (!raw) throw new Error("Model returned empty response");

@@ -5,6 +5,9 @@
 - Path aliases configured for `@/...`
 - Backblaze B2 with server-side uploads
 
+### 🎥 Demo Videos
+
+
 ## Run
 ```bash
 npm i

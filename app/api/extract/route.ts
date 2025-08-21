@@ -45,13 +45,14 @@ VALIDATION REQUIREMENTS:
 - All prices must be reasonable for the item type
 - Quantities must be positive integers
 - Tax percentage should be decimal format (0.0875 for 8.75%)
-- Tip percentage should be decimal format (0.18 for 18%)
+- Tip percentage should be decimal format (0.18 for 18%) (use 0 only if none)
 
 SPECIAL CASES:
 - Multiple sizes/options: Include size in name ("Large Coffee", "Medium Fries")  
 - Combo meals: Break down into individual items if possible
 - Unclear prices: Make best estimate based on similar items and context
 - Foreign currency: Convert to USD if possible, otherwise specify currency
+- NEVER RETURN NULL FOR A NUMBER IF NOT CLEAR RETURN 0 
 
 Return ONLY valid JSON with no explanations:
 

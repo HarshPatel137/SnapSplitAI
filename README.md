@@ -1,4 +1,4 @@
-#SnapSplit AI
+### SnapSplit AI
 
 - Next 15.5 
 - PostCSS config is CommonJS (`postcss.config.cjs`) to avoid ESM errors
@@ -6,7 +6,7 @@
 - Backblaze B2 with server-side uploads
 
 ### 🎥 Demo Videos
-
+https://github.com/user-attachments/assets/6f3229ef-c53e-4314-bdbf-31d207d31a7d
 
 ## Run
 ```bash

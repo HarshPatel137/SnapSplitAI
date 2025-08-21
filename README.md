@@ -1,6 +1,6 @@
-# BillSplit+ (OpenAI + Backblaze B2, fixed)
+#SnapSplit AI
 
-- Next 15.5 (patched)
+- Next 15.5 
 - PostCSS config is CommonJS (`postcss.config.cjs`) to avoid ESM errors
 - Path aliases configured for `@/...`
 - Backblaze B2 with server-side uploads

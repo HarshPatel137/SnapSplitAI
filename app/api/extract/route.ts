@@ -20,27 +20,49 @@ const ExtractSchema = z.object({
   tipPct: z.number().min(0).max(0.5).optional(),
 });
 
-const systemPrompt = `You are a meticulous receipt parser. Extract data from receipts and return ONLY a JSON object.
+const systemPrompt = `You are an expert receipt parser specializing in extracting accurate data from restaurant and retail receipts.
 
-CRITICAL REQUIREMENTS:
-- Every item MUST have "name" (string), "qty" (positive integer), and "price" (positive number)
-- If qty is missing, assume qty = 1
-- If price is unclear, check again and try to make a best estimate as a positive number
-- Always ensure the subtotal returned is the same as the one on the receipt, if not check all prices of previous items with the image and revalute thier price until the subtotal matches the subtotal from the image.
-- taxPct and tipPct should be exact decimals (e.g., 0.13 for 13%)
-- Only include actual food/drink items, not taxes, tips, or totals
-- Return valid JSON only, no explanations, only return final values per item 
+ANALYSIS PROCESS:
+1. Scan the entire receipt image carefully
+2. Identify the merchant name (usually at the top)
+3. Look for the date (various formats accepted)
+4. Find ALL line items that represent actual products/food/drinks purchased
+5. For each item, extract: name, quantity, and individual unit price
+6. Calculate running subtotal to verify accuracy
+7. Extract tax and tip percentages if present
 
-Example format:
+CRITICAL EXTRACTION RULES:
+- ONLY extract actual purchased items (food, drinks, products)
+- EXCLUDE: taxes, tips, service charges, discounts, totals, subtotals
+- If quantity is not explicitly shown, default to qty = 1  
+- For bundled items (e.g., "2 Burgers $25.98"), calculate per-unit price (12.99 each)
+- If an item shows multiple quantities, extract as separate entries OR use the qty field correctly
+- Prices must be positive numbers (use 0 only if truly unclear)
+- Names should be descriptive but concise
+
+VALIDATION REQUIREMENTS:
+- Your extracted items subtotal should approximately match the receipt's subtotal
+- All prices must be reasonable for the item type
+- Quantities must be positive integers
+- Tax percentage should be decimal format (0.0875 for 8.75%)
+- Tip percentage should be decimal format (0.18 for 18%)
+
+SPECIAL CASES:
+- Multiple sizes/options: Include size in name ("Large Coffee", "Medium Fries")  
+- Combo meals: Break down into individual items if possible
+- Unclear prices: Make best estimate based on similar items and context
+- Foreign currency: Convert to USD if possible, otherwise specify currency
+
+Return ONLY valid JSON with no explanations:
+
 {
   "merchant": "Restaurant Name",
-  "date": "2024-01-01",
+  "date": "2024-01-01", 
   "currency": "USD",
   "items": [
-    {"name": "Burger", "qty": 1, "price": 12.99},
-    {"name": "Fries", "qty": 2, "price": 4.50}
+    {"name": "Item Name", "qty": 1, "price": 12.99}
   ],
-  "taxPct": 0.13,
+  "taxPct": 0.0875,
   "tipPct": 0.18
 }`;
 
@@ -159,28 +181,39 @@ export async function POST(req: NextRequest) {
 
     console.log('Sending to OpenAI...');
     
-    const resp = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: "Extract items from this receipt and return ONLY JSON matching the schema." },
-            { 
-              type: "image_url", 
-              image_url: { 
-                url: base64Image 
-              } 
-            },
-          ],
-        },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.1,
-      max_tokens: 1000,
-    });
-
+   const resp = await client.chat.completions.create({
+    model: "gpt-4o", // Instead of gpt-4o-mini
+    messages: [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: [
+          { 
+            type: "text", 
+            text: `Please analyze this receipt image carefully and extract all items with their exact quantities and prices. 
+            
+            Step-by-step process:
+            1. First identify all line items (food/drink items only, ignore taxes, tips, service charges)
+            2. For each item, find the exact quantity (if not shown, assume 1)
+            3. Find the exact price per item (not total if multiple quantities)
+            4. Calculate subtotal to verify accuracy
+            5. Extract tax percentage and tip percentage if shown
+            6. Return only the JSON object with no explanations` 
+          },
+          { 
+            type: "image_url", 
+            image_url: { 
+              url: base64Image,
+              detail: "high" // Important for better image analysis
+            } 
+          },
+        ],
+      },
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0, // Use 0 for more consistent results
+    max_tokens: 2000, // Increased token limit
+  });
     const raw = resp.choices[0]?.message?.content;
     if (!raw) throw new Error("Model returned empty response");
 

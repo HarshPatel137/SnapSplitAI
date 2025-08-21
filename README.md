@@ -61,6 +61,12 @@ Client
 
 ---
 
+## 📄 Pages
+
+
+
+---
+
 ## Setup
 
 ```bash
